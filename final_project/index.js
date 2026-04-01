@@ -1,79 +1,72 @@
-const express = require("express");
-const app = express();
-const port = 5000;
-const general = require("general.js");
+const express = require('express');
+let books = require("./booksdb.js");
+let isValid = require("./auth_users.js").isValid;
+let users = require("./auth_users.js").users;
+const public_users = express.Router();
 
-app.use(express.json());
+// Register a new user
+public_users.post("/register", (req, res) => {
+    const { username, password } = req.body;
 
-// In-memory users
-let users = {};
+    if (!username || !password) {
+        return res.status(400).json({ message: "Username and password are required" });
+    }
 
-// --- Endpoints ---
+    if (!isValid(username)) {
+        return res.status(409).json({ message: "Username already exists" });
+    }
 
-// Get all books
-app.get("/", async (req, res) => {
-    const allBooks = await general.getAllBooks();
-    res.json(allBooks); // array of objects
+    users.push({ username, password });
+    return res.status(201).json({ message: "User registered successfully" });
 });
 
-// Get book by ISBN
-app.get("/isbn/:isbn", async (req, res) => {
-    const book = await general.getBookByISBN(req.params.isbn);
-    if (book) res.json(book);
-    else res.status(404).json({ message: "Book not found" });
+// Get the full book list
+public_users.get('/', (req, res) => {
+    return res.status(200).json(books);
 });
 
-// Get books by author
-app.get("/author/:author", async (req, res) => {
-    const booksByAuthor = await general.getBooksByAuthor(req.params.author);
-    res.json(booksByAuthor);
+// Get book details by ISBN
+public_users.get('/isbn/:isbn', (req, res) => {
+    const isbn = req.params.isbn;
+    if (books[isbn]) {
+        return res.status(200).json(books[isbn]);
+    } else {
+        return res.status(404).json({ message: "Book not found" });
+    }
+});
+
+// Get book details by author
+public_users.get('/author/:author', (req, res) => {
+    const author = req.params.author.toLowerCase();
+    const result = Object.values(books).filter(book => book.author.toLowerCase() === author);
+
+    if (result.length > 0) {
+        return res.status(200).json(result);
+    } else {
+        return res.status(404).json({ message: "No books found by this author" });
+    }
 });
 
 // Get books by title
-app.get("/title/:title", async (req, res) => {
-    const booksByTitle = await general.getBooksByTitle(req.params.title);
-    res.json(booksByTitle);
+public_users.get('/title/:title', (req, res) => {
+    const title = req.params.title.toLowerCase();
+    const result = Object.values(books).filter(book => book.title.toLowerCase() === title);
+
+    if (result.length > 0) {
+        return res.status(200).json(result);
+    } else {
+        return res.status(404).json({ message: "No books found with this title" });
+    }
 });
 
-// Get book review
-app.get("/review/:isbn", async (req, res) => {
-    const reviews = await general.getBookReview(req.params.isbn);
-    if (reviews !== null) res.json({ reviews });
-    else res.status(404).json({ message: "Book not found" });
+// Get book reviews by ISBN
+public_users.get('/review/:isbn', (req, res) => {
+    const isbn = req.params.isbn;
+    if (books[isbn]) {
+        return res.status(200).json(books[isbn].reviews || {});
+    } else {
+        return res.status(404).json({ message: "Book not found" });
+    }
 });
 
-// Register
-app.post("/register", (req, res) => {
-    const { username, password } = req.body;
-    if (!username || !password) return res.status(400).json({ message: "Username and password required" });
-    if (users[username]) return res.status(409).json({ message: "User already exists" });
-    users[username] = { password };
-    res.json({ message: "User successfully registered." });
-});
-
-// Login
-app.post("/login", (req, res) => {
-    const { username, password } = req.body;
-    if (!username || !password) return res.status(400).json({ message: "Username and password required" });
-    if (!users[username] || users[username].password !== password) return res.status(401).json({ message: "Invalid username or password" });
-    res.json({ message: "Login successful!" });
-});
-
-// Add or modify a review
-app.put("/review/:isbn", async (req, res) => {
-    const { username, review } = req.body;
-    if (!username || !review) return res.status(400).json({ message: "Username and review required" });
-    const result = await general.addOrModifyReview(req.params.isbn, username, review);
-    res.json(result);
-});
-
-// Delete a review
-app.delete("/review/:isbn", async (req, res) => {
-    const { username } = req.body;
-    if (!username) return res.status(400).json({ message: "Username required" });
-    const result = await general.deleteReview(req.params.isbn, username);
-    res.json(result);
-});
-
-// Start server
-app.listen(port, () => console.log(`Server running on port ${port}`));
+module.exports.general = public_users;
