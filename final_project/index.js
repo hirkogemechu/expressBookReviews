@@ -1,7 +1,7 @@
 const express = require("express");
 const app = express();
 const port = 5000;
-const general = require("./final_project/general.js");
+const general = require("general.js");
 
 app.use(express.json());
 
