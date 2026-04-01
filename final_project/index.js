@@ -1,6 +1,7 @@
+// final_project/index.js
 const express = require('express');
 const router = express.Router();
-const books = require('./final_project/index.js'); // or './router/index.js'
+const books = require('./general'); // ← IMPORTANT: Import from general.js, NOT index.js
 
 // Get all books
 router.get('/', async (req, res) => {
@@ -34,7 +35,7 @@ router.get('/review/:isbn', async (req, res) => {
 
 // Add/Modify review (requires authentication)
 router.put('/review/:isbn', async (req, res) => {
-    const username = req.session.username; // Or from JWT token
+    const username = req.session.username;
     const review = req.body.review;
     const result = await books.addOrModifyReview(req.params.isbn, username, review);
     res.json(result);
@@ -42,7 +43,7 @@ router.put('/review/:isbn', async (req, res) => {
 
 // Delete review (requires authentication)
 router.delete('/review/:isbn', async (req, res) => {
-    const username = req.session.username; // Or from JWT token
+    const username = req.session.username;
     const result = await books.deleteReview(req.params.isbn, username);
     res.json(result);
 });
