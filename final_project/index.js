@@ -1,22 +1,50 @@
 const express = require('express');
-const jwt = require('jsonwebtoken');
-const session = require('express-session')
-const customer_routes = require('./router/auth_users.js').authenticated;
-const genl_routes = require('./router/general.js').general;
+const router = express.Router();
+const books = require('./general'); // Path to your general.js
 
-const app = express();
-
-app.use(express.json());
-
-app.use("/customer",session({secret:"fingerprint_customer",resave: true, saveUninitialized: true}))
-
-app.use("/customer/auth/*", function auth(req,res,next){
-//Write the authenication mechanism here
+// Get all books
+router.get('/', async (req, res) => {
+    const allBooks = await books.getAllBooks();
+    res.json(allBooks);
 });
- 
-const PORT =5000;
 
-app.use("/customer", customer_routes);
-app.use("/", genl_routes);
+// Get books by ISBN
+router.get('/isbn/:isbn', async (req, res) => {
+    const book = await books.getBookByISBN(req.params.isbn);
+    res.json(book || { message: "Book not found" });
+});
 
-app.listen(PORT,()=>console.log("Server is running"));
+// Get books by author
+router.get('/author/:author', async (req, res) => {
+    const booksByAuthor = await books.getBooksByAuthor(req.params.author);
+    res.json(booksByAuthor);
+});
+
+// Get books by title
+router.get('/title/:title', async (req, res) => {
+    const booksByTitle = await books.getBooksByTitle(req.params.title);
+    res.json(booksByTitle);
+});
+
+// Get book review
+router.get('/review/:isbn', async (req, res) => {
+    const review = await books.getBookReview(req.params.isbn);
+    res.json(review || { message: "No reviews found" });
+});
+
+// Add/Modify review (requires authentication)
+router.put('/review/:isbn', async (req, res) => {
+    const username = req.session.username; // Or from JWT token
+    const review = req.body.review;
+    const result = await books.addOrModifyReview(req.params.isbn, username, review);
+    res.json(result);
+});
+
+// Delete review (requires authentication)
+router.delete('/review/:isbn', async (req, res) => {
+    const username = req.session.username; // Or from JWT token
+    const result = await books.deleteReview(req.params.isbn, username);
+    res.json(result);
+});
+
+module.exports = router;
