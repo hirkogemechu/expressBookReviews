@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const books = require('./general'); // Path to your general.js
+const bookRoutes = require('./final_project/index.js'); // or './router/index.js'
 
 // Get all books
 router.get('/', async (req, res) => {
